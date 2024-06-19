@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OKE test app</title>
+    <link
+      rel="stylesheet"
+      href="https://m7cdn.io/common/css/external/external.css"
+    />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+
+  <body>
+    <div id="vod-app">
+      <div class="styles__ext">
+        <div theme="dark" class="pb-12">
+          <section class="c-section pb-12">
+            <h1 class="font-type-text px-3">Showcase</h1>
+          </section>
+
+          <div v-if="fetchError">
+            <section class="c-section pb-12">
+              <h2>An error occured while fetching data.</h2>
+            </section>
+          </div>
+
+          <div v-else>
+            <div
+              v-for="(vodSection, vodSectionId) in vodSections?.showcase"
+              :key="vodSectionId"
+            >
+              <section v-if="vodSectionId > 0" class="c-section !pb-0">
+                <div class="pl-3">
+                  <h2 class="font-type-text">{{ vodSection?.title }}</h2>
+                </div>
+              </section>
+              <section class="c-section !pt-0 !pb-0">
+                <div class="px-2">
+                  <div class="c-section__columns c-section__slider pr-base w-full flex">
+                    <div
+                      v-for="(vodItem, vodItemId) in vodSection?.assets"
+                      :key="vodItemId"
+                      :class="[
+                        'c-section__columns-item',
+                        'w-full', 
+                        'self-strech', 
+                        'text-start', 
+                        {
+                          '2xl:w-6/12 lg:w-8/12 md:w-10/12': vodSectionId === 0,
+                          '2xl:w-2/12 lg:w-3/12 md:w-6/12': vodSectionId > 0,
+                        }  
+                      ]"
+                    >
+                      <div class="px-1 h-full w-full">
+                        <a
+                          :href="`https://livetv.hdaustria.at/asset/${vodItem?.id}`"
+                          target="_blank"
+                          class="c-section__link h-full"
+                        >
+                          <div class="!flex">
+                            <div v-if="vodSectionId > 1" class="block mb-5 pr-2 w-14 pt-10 self-end text-right text-3xl font-text-bold leading-9 text-white bg-gradient-to-t from-dark-gray to-transparent">
+                              {{ vodItemId + 1 }}
+                            </div>
+                            <div class="w-fit">
+                              <img
+                                loading="lazy"
+                                :src="prepareImgSrc(vodItem?.images, vodSectionId > 0 ? 'po' : 'la')"
+                                width="100"
+                                height="100"
+                                :alt="vodItem?.title"
+                                :title="vodItem?.title"
+                                :class="[
+                                  'block',
+                                  'o-img', 
+                                  'w-full',
+                                  { 
+                                    'aspect-[16/9]': vodSectionId === 0,
+                                    'aspect-[3/4]': vodSectionId > 0,
+                                  },
+                                ]"
+                              />
+                            </div>
+                          </div>
+
+                          <div 
+                            v-if="vodSectionId > 0"
+                            :class="['c-section__details', {'pl-16': vodSectionId > 1}]"
+                          >
+                            <h3>{{ vodItem?.title }}</h3>
+                            <span>{{ prepareGenres(vodItem?.params?.genres) }}</span>
+                          </div>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'dark-gray': '#333',
+            },
+            aspectRatio: {
+              '3/4': '3 / 4',
+            },
+          },
+        },
+      }
+
+      const { ref, createApp, onMounted } = Vue;
+      createApp({
+        setup() {
+          const vodSections = ref([]);
+          const fetchError = ref(false);
+
+          const fetchVodSections = async () => {
+            try {
+              const response = await fetch('https://asstatic.solocoo.tv/v1/showcase/Home?app=as');
+              if (!response.ok) {
+                fetchError.value = true;
+
+                return [];
+              }
+
+              return response.json();
+            } catch (error) {
+              fetchError.value = true;
+
+              return [];
+            }
+          };
+
+          const prepareImgSrc = (images, orientation) => {
+            const image = images.find(
+              (imageItem) => imageItem.type === orientation
+            );
+
+            if (image) {
+              return image.url.replace(
+                '://static-originals.',
+                '://static-content.'
+              );
+            }
+
+            return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSx8Wi1eNuA3e0VCrP2PMJw-LDMZMHlyn9sNA&s';
+          };
+
+          const prepareGenres = (genres) => genres && genres.map((genre) => genre.title).join(', ');
+
+          onMounted(async () => {
+            vodSections.value = await fetchVodSections();
+          });
+
+          return {
+            vodSections,
+            fetchError,
+            prepareImgSrc,
+            prepareGenres,
+          };
+        },
+      }).mount('#vod-app');
+    </script>
+  </style>
+  </body>
+</html>
